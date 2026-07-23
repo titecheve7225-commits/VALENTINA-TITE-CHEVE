@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Amortización de Activos</title>
+    <!-- Tailwind CSS para estilos rápidos y modernos -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons para iconos limpios y estéticos -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col relative">
+
+    <!-- Notificación Toast personalizada para copiado exitoso -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-xl flex items-center gap-2 transform translate-y-20 opacity-0 transition-all duration-300 z-50 pointer-events-none">
+        <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+        <span id="toastMessage">¡Enlace copiado con éxito!</span>
+    </div>
+
+    <!-- Cabecera (Header) -->
+    <header class="bg-indigo-900 text-white shadow-md py-6 px-4">
+        <div class="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-indigo-600 p-2.5 rounded-xl shadow-inner">
+                    <i data-lucide="calculator" class="w-8 h-8 text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight">Calculadora de Amortización</h1>
+                    <p class="text-xs text-indigo-200">Planifica y visualiza el pago de tus compras y proyectos paso a paso</p>
+                </div>
+            </div>
+            <div class="text-xs md:text-sm bg-indigo-800/50 border border-indigo-700/50 rounded-lg px-3 py-1.5 text-indigo-200">
+                <span class="font-semibold text-white">Valentina App</span> • Educación Financiera
+            </div>
+        </div>
+    </header>
+
+    <!-- Contenido Principal (Main) -->
+    <main class="flex-grow max-w-6xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Formulario de Entrada de Datos -->
+        <section class="lg:col-span-1 bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 md:p-6 h-fit space-y-4">
+            
+            <!-- Bloque de Simulaciones Rápidas -->
+            <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
+                <p class="text-xs text-indigo-800 font-bold mb-3 flex items-center gap-1.5">
+                    <i data-lucide="sparkles" class="w-4 h-4 text-indigo-600"></i>
+                    <span>¿Quieres ver un ejemplo rápido?</span>
+                </p>
+                <div class="grid grid-cols-1 gap-2">
+                    <!-- Botón Carro -->
+                    <button type="button" id="carPresetBtn" class="w-full bg-white hover:bg-indigo-600 border border-slate-200 hover:border-indigo-600 hover:text-white text-slate-700 font-bold py-2.5 px-3 rounded-lg text-xs transition-all shadow-sm flex items-center gap-2">
+                        <span class="text-base">🚗</span>
+                        <span class="text-left flex-1">Ejemplo: Comprar un Carro</span>
+                    </button>
+                    <!-- Botón BanEcuador -->
+                    <button type="button" id="ecuadorPresetBtn" class="w-full bg-white hover:bg-emerald-600 border border-slate-200 hover:border-emerald-600 hover:text-white text-slate-700 font-bold py-2.5 px-3 rounded-lg text-xs transition-all shadow-sm flex items-center gap-2">
+                        <span class="text-base">🇪🇨</span>
+                        <span class="text-left flex-1">Ejemplo: Préstamo Joven</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 pb-2 border-b border-slate-100">
+                <i data-lucide="settings" class="w-5 h-5 text-indigo-600"></i>
+                <h2 class="text-lg font-bold text-slate-900">Tus Datos Personales</h2>
+            </div>
+            
+            <form id="amortizacionForm" class="space-y-4">
+                <!-- Nombre del Cliente -->
+                <div>
+                    <label for="clientName" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Tu Nombre</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                            <i data-lucide="user" class="w-4 h-4"></i>
+                        </span>
+                        <input type="text" id="clientName" required 
+                            placeholder="Escribe tu nombre aquí" 
+                            class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all">
+                    </div>
+                </div>
+
+                <!-- Nombre del Activo -->
+                <div>
+                    <label for="assetName" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">¿Qué vas a comprar o financiar?</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                            <i data-lucide="tag" class="w-4 h-4"></i>
+                        </span>
+                        <input type="text" id="assetName" required 
+                            placeholder="Ej: Mi computadora nueva" 
+                            class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all">
+                    </div>
+                </div>
+
+                <!-- Valor del Activo -->
+                <div>
+                    <label for="assetValue" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Monto Total ($)</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 font-medium text-sm">$</span>
+                        <input type="number" id="assetValue" min="1" step="any" required 
+                            placeholder="0.00" 
+                            class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all">
+                    </div>
+                </div>
+
+                <!-- Plazo en Años -->
+                <div>
+                    <label for="years" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Plazo de Pago (Años)</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                            <i data-lucide="calendar-range" class="w-4 h-4"></i>
+                        </span>
+                        <input type="number" id="years" min="1" max="50" required 
+                            placeholder="Ej: 5" 
+                            class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all">
+                    </div>
+                </div>
+
+                <!-- Interés Anual -->
+                <div>
+                    <label for="interest" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Interés Anual (% TNA)</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                            <i data-lucide="percent" class="w-4 h-4"></i>
+                        </span>
+                        <input type="number" id="interest" min="0" max="100" step="0.01" required 
+                            placeholder="Ej: 9.5" 
+                            class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all">
+                    </div>
+                </div>
+
+                <!-- Sistema de Amortización -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Sistema de Amortización</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <label class="relative flex items-center justify-center p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 cursor-pointer transition-all [&:has(input:checked)]:border-indigo-600 [&:has(input:checked)]:bg-indigo-50/50">
+                            <input type="radio" name="method" value="french" checked class="sr-only">
+                            <div class="text-center">
+                                <span class="block text-xs font-bold text-slate-800">S. Francés</span>
+                                <span class="block text-[10px] text-slate-400">Cuota Fija</span>
+                            </div>
+                        </label>
+                        <label class="relative flex items-center justify-center p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 cursor-pointer transition-all [&:has(input:checked)]:border-indigo-600 [&:has(input:checked)]:bg-indigo-50/50">
+                            <input type="radio" name="method" value="german" class="sr-only">
+                            <div class="text-center">
+                                <span class="block text-xs font-bold text-slate-800">S. Alemán</span>
+                                <span class="block text-[10px] text-slate-400">Amort. Fija</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Botón de calcular -->
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-xl shadow-lg shadow-indigo-600/10 hover:shadow-indigo-600/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-2">
+                    <i data-lucide="play" class="w-4 h-4 fill-current"></i>
+                    <span>Calcular Mi Tabla</span>
+                </button>
+            </form>
+        </section>
+
+        <!-- Resultados e Historial de Tabla -->
+        <section class="lg:col-span-2 space-y-6">
+            
+            <!-- Resumen Informativo (Cards) -->
+            <div id="resultsSummary" class="hidden grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <!-- Tarjeta 1: Total Pagado -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 flex items-center gap-4">
+                    <div class="bg-emerald-50 text-emerald-600 p-3 rounded-xl">
+                        <i data-lucide="wallet" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total a Pagar</p>
+                        <h3 id="totalPaid" class="text-xl font-bold text-slate-800 mt-0.5">$0.00</h3>
+                        <p class="text-[10px] text-emerald-600 font-medium">Capital + Intereses</p>
+                    </div>
+                </div>
+
+                <!-- Tarjeta 2: Total Intereses -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 flex items-center gap-4">
+                    <div class="bg-rose-50 text-rose-600 p-3 rounded-xl">
+                        <i data-lucide="trending-up" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Interés</p>
+                        <h3 id="totalInterest" class="text-xl font-bold text-slate-800 mt-0.5">$0.00</h3>
+                        <p class="text-[10px] text-rose-600 font-medium">Costo de financiación</p>
+                    </div>
+                </div>
+
+                <!-- Tarjeta 3: Valor de la Cuota -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 flex items-center gap-4">
+                    <div class="bg-indigo-50 text-indigo-600 p-3 rounded-xl">
+                        <i data-lucide="calendar" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <p id="quotaLabel" class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Cuota Mensual</p>
+                        <h3 id="monthlyQuota" class="text-xl font-bold text-slate-800 mt-0.5">$0.00</h3>
+                        <p id="quotaSub" class="text-[10px] text-indigo-600 font-medium">Valor por cada periodo</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabla de Amortización Principal -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
+                <div class="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="table" class="w-5 h-5 text-indigo-600"></i>
+                        <div>
+                            <h2 class="text-lg font-bold text-slate-900" id="tableTitle">Plan de Pagos Detallado</h2>
+                            <p class="text-xs text-slate-400" id="tableSubtitle">Ingresa tus datos o elige un ejemplo para comenzar.</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Botonera de acciones (Imprimir y Enlace de compartir) -->
+                    <div class="flex items-center gap-2">
+                        <!-- Botón para Copiar Enlace Directo -->
+                        <button id="shareBtn" class="hidden items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg text-xs font-semibold text-indigo-700 transition-all shadow-sm">
+                            <i data-lucide="link" class="w-3.5 h-3.5"></i>
+                            <span>Compartir Enlace</span>
+                        </button>
+                        <!-- Botón para Imprimir o guardar en PDF -->
+                        <button id="printBtn" class="hidden items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-50 transition-all shadow-sm">
+                            <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+                            <span>Exportar / Imprimir</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Estado Inicial / Vacío -->
+                <div id="emptyState" class="py-16 px-4 text-center">
+                    <div class="bg-slate-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400">
+                        <i data-lucide="calculator" class="w-8 h-8"></i>
+                    </div>
+                    <h3 class="text-base font-bold text-slate-700">Aún no se ha realizado ningún cálculo</h3>
+                    <p class="text-sm text-slate-400 max-w-sm mx-auto mt-1">Completa los campos del panel izquierdo para generar tu tabla.</p>
+                </div>
+
+                <!-- Tabla de Datos -->
+                <div id="tableWrapper" class="hidden overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100/55 border-b border-slate-200 text-slate-500 font-semibold text-xs tracking-wider">
+                                <th class="py-3 px-4 text-center w-16">Mes</th>
+                                <th class="py-3 px-4">Cuota Total</th>
+                                <th class="py-3 px-4">Interés Pagado</th>
+                                <th class="py-3 px-4">Amortización (Capital)</th>
+                                <th class="py-3 px-4 text-right">Saldo Restante</th>
+                            </tr>
+                        </thead>
+                        <tbody id="amortizationBody" class="divide-y divide-slate-100 text-sm text-slate-600">
+                            <!-- Filas generadas dinámicamente con JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- Pie de página (Footer) -->
+    <footer class="bg-slate-100 border-t border-slate-200/80 py-4 text-center text-xs text-slate-400 mt-auto">
+        <p>© 2026 Valentina App - Calculadora de Amortización de Activos. Ideal para aprender planificación financiera de manera segura.</p>
+    </footer>
+
+    <!-- Lógica de Negocio y Control de la Interfaz -->
+    <script>
+        // Inicializar iconos de Lucide
+        lucide.createIcons();
+
+        const form = document.getElementById('amortizacionForm');
+        const resultsSummary = document.getElementById('resultsSummary');
+        const emptyState = document.getElementById('emptyState');
+        const tableWrapper = document.getElementById('tableWrapper');
+        const tableBody = document.getElementById('amortizationBody');
+        const printBtn = document.getElementById('printBtn');
+        const shareBtn = document.getElementById('shareBtn');
+        const carPresetBtn = document.getElementById('carPresetBtn');
+        const ecuadorPresetBtn = document.getElementById('ecuadorPresetBtn');
+
+        // Notificación Toast
+        const toast = document.getElementById('toast');
+
+        // Referencias a textos principales
+        const tableTitle = document.getElementById('tableTitle');
+        const tableSubtitle = document.getElementById('tableSubtitle');
+
+        // Elementos del Dashboard
+        const totalPaidEl = document.getElementById('totalPaid');
+        const totalInterestEl = document.getElementById('totalInterest');
+        const monthlyQuotaEl = document.getElementById('monthlyQuota');
+        const quotaLabel = document.getElementById('quotaLabel');
+        const quotaSub = document.getElementById('quotaSub');
+
+        // Formateador de moneda para USD
+        const formatMoney = (val) => {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD'
+            }).format(val);
+        };
+
+        // Función para mostrar Toast personalizado
+        const showToast = (message) => {
+            document.getElementById('toastMessage').textContent = message;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+            
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        };
+
+        // Al cargar la página, comprueba si hay parámetros para autorellenar la tabla
+        window.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            if (params.has('client')) {
+                document.getElementById('clientName').value = params.get('client');
+                document.getElementById('assetName').value = params.get('asset');
+                document.getElementById('assetValue').value = params.get('value');
+                document.getElementById('years').value = params.get('years');
+                document.getElementById('interest').value = params.get('interest');
+                
+                const method = params.get('method');
+                if (method === 'french' || method === 'german') {
+                    document.querySelector(`input[name="method"][value="${method}"]`).checked = true;
+                }
+                
+                // Procesar cálculo directamente
+                form.requestSubmit();
+                showToast("¡Simulación cargada desde el enlace!");
+            }
+        });
+
+        // Función para simulación rápida de un carro
+        carPresetBtn.addEventListener('click', () => {
+            document.getElementById('clientName').value = "Mateo";
+            document.getElementById('assetName').value = "Automóvil Sedán Familiar 🚗";
+            document.getElementById('assetValue').value = 18000;
+            document.getElementById('years').value = 5;
+            document.getElementById('interest').value = 9.5;
+            document.querySelector('input[name="method"][value="french"]').checked = true;
+            
+            form.requestSubmit();
+        });
+
+        // Función para simulación rápida del Préstamo Joven de BanEcuador
+        ecuadorPresetBtn.addEventListener('click', () => {
+            document.getElementById('clientName').value = "Sofía";
+            document.getElementById('assetName').value = "Mi Primer Emprendimiento (BanEcuador Joven) 🇪🇨";
+            document.getElementById('assetValue').value = 5000;
+            document.getElementById('years').value = 3;
+            document.getElementById('interest').value = 15.0;
+            document.querySelector('input[name="method"][value="german"]').checked = true;
+            
+            form.requestSubmit();
+        });
+
+        // Escucha del submit del formulario
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            // Extracción de datos del DOM
+            const clientName = document.getElementById('clientName').value;
+            const assetName = document.getElementById('assetName').value;
+            const value = parseFloat(document.getElementById('assetValue').value);
+            const years = parseInt(document.getElementById('years').value);
+            const annualInterest = parseFloat(document.getElementById('interest').value);
+            const method = document.querySelector('input[name="method"]:checked').value;
+
+            // Variables de cálculo para periodos mensuales
+            const periods = years * 12;
+            const monthlyInterestRate = (annualInterest / 100) / 12;
+
+            let schedule = [];
+            let totalInterest = 0;
+            let totalPaid = 0;
+
+            if (method === 'french') {
+                // Sistema Francés: Cuota mensual constante (Fija)
+                let monthlyQuota = 0;
+                if (monthlyInterestRate > 0) {
+                    monthlyQuota = value * (monthlyInterestRate * Math.pow(1 + monthlyInterestRate, periods)) / (Math.pow(1 + monthlyInterestRate, periods) - 1);
+                } else {
+                    monthlyQuota = value / periods;
+                }
+
+                let remainingBalance = value;
+                for (let i = 1; i <= periods; i++) {
+                    const interestPaid = remainingBalance * monthlyInterestRate;
+                    const amortized = monthlyQuota - interestPaid;
+                    remainingBalance = remainingBalance - amortized;
+
+                    totalInterest += interestPaid;
+                    totalPaid += monthlyQuota;
+
+                    schedule.push({
+                        period: i,
+                        quota: monthlyQuota,
+                        interest: interestPaid,
+                        amortization: amortized,
+                        balance: Math.max(0, remainingBalance)
+                    });
+                }
+
+                quotaLabel.textContent = "Cuota Fija Mensual";
+                monthlyQuotaEl.textContent = formatMoney(monthlyQuota);
+                quotaSub.textContent = "Cuotas constantes todos los meses";
+
+            } else {
+                // Sistema Alemán: Amortización de capital constante
+                const constantAmortization = value / periods;
+                let remainingBalance = value;
+
+                for (let i = 1; i <= periods; i++) {
+                    const interestPaid = remainingBalance * monthlyInterestRate;
+                    const monthlyQuota = constantAmortization + interestPaid;
+                    remainingBalance = remainingBalance - constantAmortization;
+
+                    totalInterest += interestPaid;
+                    totalPaid += monthlyQuota;
+
+                    schedule.push({
+                        period: i,
+                        quota: monthlyQuota,
+                        interest: interestPaid,
+                        amortization: constantAmortization,
+                        balance: Math.max(0, remainingBalance)
+                    });
+                }
+
+                quotaLabel.textContent = "Cuota Promedio";
+                monthlyQuotaEl.textContent = formatMoney(totalPaid / periods);
+                quotaSub.textContent = "Va disminuyendo mes a mes";
+            }
+
+            // Cambiar estados de visibilidad de la interfaz
+            emptyState.classList.add('hidden');
+            resultsSummary.classList.remove('hidden');
+            tableWrapper.classList.remove('hidden');
+            printBtn.classList.remove('hidden');
+            printBtn.classList.add('flex');
+            shareBtn.classList.remove('hidden');
+            shareBtn.classList.add('flex');
+
+            // Actualizar encabezados informativos con el nombre de usuario
+            tableTitle.textContent = `Cotización para: ${clientName}`;
+            tableSubtitle.textContent = `Financiamiento: ${assetName} • Plazo: ${years} años (${periods} meses) • Tasa: ${annualInterest}% anual • Sistema: ${method === 'french' ? 'Francés' : 'Alemán'}`;
+
+            // Escribir los totales acumulados
+            totalPaidEl.textContent = formatMoney(totalPaid);
+            totalInterestEl.textContent = formatMoney(totalInterest);
+
+            // Poblar y limpiar cuerpo de la tabla
+            tableBody.innerHTML = '';
+            schedule.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition-colors border-b border-slate-100";
+                
+                tr.innerHTML = `
+                    <td class="py-3 px-4 text-center font-bold text-slate-500">${row.period}</td>
+                    <td class="py-3 px-4 font-semibold text-slate-900">${formatMoney(row.quota)}</td>
+                    <td class="py-3 px-4 text-rose-600 font-medium">${formatMoney(row.interest)}</td>
+                    <td class="py-3 px-4 text-emerald-600 font-medium">${formatMoney(row.amortization)}</td>
+                    <td class="py-3 px-4 text-right font-medium text-slate-700">${formatMoney(row.balance)}</td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        });
+
+        // Evento para copiar el enlace directo al portapapeles
+        shareBtn.addEventListener('click', () => {
+            const client = encodeURIComponent(document.getElementById('clientName').value);
+            const asset = encodeURIComponent(document.getElementById('assetName').value);
+            const value = encodeURIComponent(document.getElementById('assetValue').value);
+            const years = encodeURIComponent(document.getElementById('years').value);
+            const interest = encodeURIComponent(document.getElementById('interest').value);
+            const method = encodeURIComponent(document.querySelector('input[name="method"]:checked').value);
+
+            // Armar URL con parámetros de consulta
+            const baseUrl = window.location.href.split('?')[0];
+            const shareUrl = `${baseUrl}?client=${client}&asset=${asset}&value=${value}&years=${years}&interest=${interest}&method=${method}`;
+
+            // Copiar al portapapeles de manera segura compatible con iFrame
+            const tempInput = document.createElement('textarea');
+            tempInput.value = shareUrl;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+
+            // Mostrar el toast de éxito
+            showToast("¡Enlace directo copiado al portapapeles!");
+        });
+
+        // Evento para imprimir el reporte
+        printBtn.addEventListener('click', () => {
+            window.print();
+        });
+    </script>
+</body>
+</html>

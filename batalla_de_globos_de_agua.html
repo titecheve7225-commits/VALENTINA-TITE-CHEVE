@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eco Splash Park - JVF</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #2ecc71;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+        canvas {
+            display: block;
+        }
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        .panel {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 15px;
+            color: #2c3e50;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            border: 3px solid #f1c40f;
+        }
+        #player-stats {
+            bottom: 20px;
+            left: 20px;
+            min-width: 220px;
+        }
+        #energy-bar-container {
+            width: 100%;
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 10px;
+            border: 2px solid #bdc3c7;
+        }
+        #energy-bar {
+            width: 100%;
+            height: 100%;
+            background: #3498db;
+            transition: width 0.2s;
+        }
+        .stat-text {
+            font-size: 16px;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+        #weapon-name {
+            color: #e67e22;
+        }
+        #shield-status {
+            color: #2ecc71;
+            font-size: 14px;
+        }
+        #kill-feed {
+            top: 20px;
+            right: 20px;
+            text-align: right;
+            background: transparent;
+            box-shadow: none;
+            border: none;
+        }
+        .feed-msg {
+            color: #2c3e50;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 8px 15px;
+            margin-bottom: 5px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border-left: 5px solid #3498db;
+        }
+        #game-over {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            background: white;
+            padding: 40px;
+            border-radius: 25px;
+            border: 5px solid #f1c40f;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+            pointer-events: auto;
+        }
+        #game-over h1 {
+            color: #2ecc71;
+            font-size: 44px;
+            margin: 0 0 10px 0;
+        }
+        #game-over p {
+            color: #34495e;
+            font-size: 20px;
+        }
+        button {
+            background: #f1c40f;
+            color: #2c3e50;
+            border: none;
+            padding: 12px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 12px;
+            cursor: pointer;
+            margin-top: 15px;
+            box-shadow: 0 4px 0 #d35400;
+            transition: all 0.1s;
+        }
+        button:active {
+            transform: translateY(4px);
+            box-shadow: none;
+        }
+        #controls-help {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.9);
+            padding: 12px;
+            border-radius: 10px;
+            color: #2c3e50;
+            font-size: 13px;
+            text-align: right;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="ui-layer">
+        <div id="player-stats" class="panel">
+            <div id="energy-bar-container">
+                <div id="energy-bar"></div>
+            </div>
+            <div class="stat-text">Energía Fresca: <span id="energy-text">100</span>%</div>
+            <div class="stat-text">Juguete: <span id="weapon-name">Lanzador Simple</span></div>
+            <div class="stat-text" style="color: #7f8c8d; font-size: 13px;">Agua: ¡Infinita! 💧</div>
+            <div id="shield-status">Pared de Flores: ¡Lista! 🌸</div>
+            <div class="stat-text" style="margin-top: 10px; border-top: 1px solid #ddd; padding-top: 8px;">
+                Amigos Refrescados: <span id="kills-text">0</span><br>
+                Jugando en el Parque: <span id="alive-text">0</span>
+            </div>
+        </div>
+
+        <div id="kill-feed" class="panel"></div>
+
+        <div id="controls-help">
+            <strong>Controles:</strong><br>
+            Teclas <strong>W, A, S, D</strong> o <strong>Flechas</strong> para moverte.<br>
+            Mueve el <strong>Ratón</strong> para apuntar.<br>
+            Mantén presionado el <strong>Clic izquierdo</strong> para lanzar agua.<br>
+            ¡Las Paredes de Flores brotan solas!
+        </div>
+
+        <div id="game-over">
+            <h1 id="go-title">¡Qué divertido!</h1>
+            <p id="go-stats">Lograste refrescar a varios amigos en el parque.</p>
+            <button onclick="location.reload()">Jugar otra vez 🎈</button>
+        </div>
+    </div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    let width, height;
+    function resize() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = width;
+        canvas.height = height;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    const WORLD_SIZE = 2500;
+    const TILE_SIZE = 120;
+    let camera = { x: 0, y: 0 };
+    
+    const keys = { 
+        w: false, a: false, s: false, d: false,
+        arrowup: false, arrowdown: false, arrowleft: false, arrowright: false
+    };
+    const mouse = { x: 0, y: 0, down: false };
+
+    window.addEventListener('keydown', e => { 
+        const k = e.key.toLowerCase();
+        if(keys.hasOwnProperty(k)) keys[k] = true; 
+    });
+    window.addEventListener('keyup', e => { 
+        const k = e.key.toLowerCase();
+        if(keys.hasOwnProperty(k)) keys[k] = false; 
+    });
+    window.addEventListener('mousemove', e => { 
+        mouse.x = e.clientX; 
+        mouse.y = e.clientY; 
+    });
+    window.addEventListener('mousedown', () => mouse.down = true);
+    window.addEventListener('mouseup', () => mouse.down = false);
+    window.addEventListener('contextmenu', e => e.preventDefault());
+
+    const TOYS = {
+        'Lanzador Simple': { color: '#3498db', size: 18, dps: 12, speed: 12, cooldown: 250, spread: 0.04, count: 1, type: 'agua' },
+        'Soplador de Burbujas': { color: '#9b59b6', size: 25, dps: 8, speed: 11, cooldown: 80, spread: 0.12, count: 1, type: 'burbuja' },
+        'Súper Remojador': { color: '#e67e22', size: 22, dps: 14, speed: 13, cooldown: 500, spread: 0.25, count: 4, type: 'agua' },
+        'Lanzador de Globos': { color: '#e74c3c', size: 35, dps: 65, speed: 16, cooldown: 1100, spread: 0.01, count: 1, type: 'globo' }
+    };
+
+    let players = [];
+    let splatters = [];
+    let flowerWalls = [];
+    let toyBoxes = [];
+    let particles = [];
+    let trees = [];
+
+    let myPlayer;
+    let friendsRefreshed = 0;
+    let isGameOver = false;
+
+    class Particle {
+        constructor(x, y, color) {
+            this.x = x;
+            this.y = y;
+            this.vx = (Math.random() - 0.5) * 6;
+            this.vy = (Math.random() - 0.5) * 6;
+            this.life = 1;
+            this.decay = Math.random() * 0.04 + 0.02;
+            this.color = color;
+            this.size = Math.random() * 5 + 3;
+        }
+        update() {
+            this.x += this.vx;
+            this.y += this.vy;
+            this.life -= this.decay;
+        }
+        draw(ctx) {
+            ctx.globalAlpha = Math.max(0, this.life);
+            ctx.fillStyle = this.color;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1.0;
+        }
+    }
+
+    class Tree {
+        constructor(x, y) {
+            this.x = x;
+            this.y = y;
+            this.trunkRadius = 15;
+            this.foliageRadius = 55;
+        }
+        draw(ctx) {
+            ctx.fillStyle = 'rgba(0,0,0,0.15)';
+            ctx.beginPath();
+            ctx.arc(this.x, this.y + 10, this.foliageRadius, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#a0522d'; 
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.trunkRadius, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#2ecc71';
+            ctx.beginPath();
+            ctx.arc(this.x, this.y - 5, this.foliageRadius, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#e74c3c';
+            ctx.beginPath();
+            ctx.arc(this.x - 20, this.y - 15, 6, 0, Math.PI*2);
+            ctx.arc(this.x + 25, this.y + 5, 6, 0, Math.PI*2);
+            ctx.arc(this.x + 5, this.y - 30, 6, 0, Math.PI*2);
+            ctx.fill();
+        }
+    }
+
+    class ToyBox {
+        constructor(x, y, toyName) {
+            this.x = x;
+            this.y = y;
+            this.toyName = toyName;
+            this.radius = 16;
+            this.pulse = 0;
+        }
+        update() {
+            this.pulse += 0.05;
+        }
+        draw(ctx) {
+            let drawY = this.y + Math.sin(this.pulse) * 4;
+            let config = TOYS[this.toyName];
+
+            ctx.fillStyle = config.color;
+            ctx.globalAlpha = 0.25;
+            ctx.beginPath();
+            ctx.arc(this.x, drawY, this.radius + 10, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1.0;
+
+            ctx.fillStyle = '#f1c40f';
+            ctx.beginPath();
+            ctx.arc(this.x, drawY, this.radius, 0, Math.PI*2);
+            ctx.fill();
+
+            ctx.fillStyle = config.color;
+            ctx.fillRect(this.x - 4, drawY - 16, 8, 32);
+            ctx.fillRect(this.x - 16, drawY - 4, 32, 8);
+
+            ctx.fillStyle = '#2c3e50';
+            ctx.font = 'bold 11px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(this.toyName.split(' ')[1] || this.toyName, this.x, drawY - 22);
+        }
+    }
+
+    class FlowerWall {
+        constructor(x, y, angle) {
+            this.x = x;
+            this.y = y;
+            this.angle = angle;
+            this.radius = 40;
+            this.energy = 200;
+            this.maxEnergy = 200;
+            this.lifeTime = 6000;
+            this.birth = Date.now();
+        }
+        update() {
+            if (Date.now() - this.birth > this.lifeTime) {
+                this.energy = 0;
+            }
+        }
+        draw(ctx) {
+            let ageFactor = Math.min(1, (this.lifeTime - (Date.now() - this.birth)) / 800);
+            ctx.globalAlpha = ageFactor;
+
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.angle);
+
+            ctx.beginPath();
+            ctx.arc(0, 0, this.radius, -Math.PI/2, Math.PI/2);
+            ctx.lineWidth = 14;
+            ctx.strokeStyle = '#27ae60';
+            ctx.lineCap = 'round';
+            ctx.stroke();
+
+            ctx.fillStyle = '#f1c40f';
+            ctx.beginPath();
+            ctx.arc(0, -20, 6, 0, Math.PI*2);
+            ctx.arc(0, 20, 6, 0, Math.PI*2);
+            ctx.arc(15, 0, 6, 0, Math.PI*2);
+            ctx.fill();
+
+            ctx.fillStyle = '#e74c3c';
+            ctx.beginPath();
+            ctx.arc(0, -20, 3, 0, Math.PI*2);
+            ctx.arc(0, 20, 3, 0, Math.PI*2);
+            ctx.arc(15, 0, 3, 0, Math.PI*2);
+            ctx.fill();
+
+            ctx.restore();
+            ctx.globalAlpha = 1.0;
+        }
+    }
+
+    class Splatter {
+        constructor(x, y, angle, toyConfig, ownerId) {
+            this.x = x;
+            this.y = y;
+            
+            let randomSpread = (Math.random() - 0.5) * toyConfig.spread;
+            this.angle = angle + randomSpread;
+            
+            this.vx = Math.cos(this.angle) * toyConfig.speed;
+            this.vy = Math.sin(this.angle) * toyConfig.speed;
+            this.damage = toyConfig.dps;
+            this.ownerId = ownerId;
+            this.type = toyConfig.type;
+            this.color = toyConfig.color;
+            this.radius = this.type === 'globo' ? 12 : (this.type === 'burbuja' ? 8 : 4);
+            this.life = 45;
+            this.active = true;
+        }
+        update() {
+            this.x += this.vx;
+            this.y += this.vy;
+            this.life--;
+            if (this.life <= 0 || this.x < 0 || this.x > WORLD_SIZE || this.y < 0 || this.y > WORLD_SIZE) {
+                this.active = false;
+            }
+        }
+        draw(ctx) {
+            ctx.fillStyle = this.color;
+            ctx.beginPath();
+            if (this.type === 'burbuja') {
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 1.5;
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.fillStyle = 'rgba(155, 89, 182, 0.2)';
+                ctx.fill();
+            } else if (this.type === 'globo') {
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x - Math.cos(this.angle)*15, this.y - Math.sin(this.angle)*15, 4, 4);
+            } else {
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+    }
+
+    class Character {
+        constructor(x, y, isBot = true) {
+            this.id = Math.random().toString(36).substr(2, 9);
+            this.x = x;
+            this.y = y;
+            this.radius = 20;
+            this.isBot = isBot;
+            this.speed = isBot ? 3.8 : 4.4;
+            this.angle = 0;
+            this.hp = 100;
+            this.maxHp = 100;
+            
+            this.weapon = 'Lanzador Simple';
+            this.lastShot = 0;
+
+            this.shieldCooldown = 0;
+            this.maxShieldCooldown = isBot ? 5500 : 3500;
+
+            if (this.isBot) {
+                this.targetX = x;
+                this.targetY = y;
+                this.state = 'pasear';
+                this.timer = 0;
+                const toysList = Object.keys(TOYS);
+                this.weapon = toysList[Math.floor(Math.random() * toysList.length)];
+            }
+        }
+
+        update() {
+            if (this.hp <= 0) return;
+
+            if (this.hp < this.maxHp) {
+                this.hp += this.isBot ? 0.015 : 0.04;
+            }
+
+            if (this.shieldCooldown > 0) {
+                this.shieldCooldown -= 1000/60;
+            }
+
+            let dx = 0, dy = 0;
+
+            if (!this.isBot) {
+                if (keys.w || keys.arrowup) dy -= 1;
+                if (keys.s || keys.arrowdown) dy += 1;
+                if (keys.a || keys.arrowleft) dx -= 1;
+                if (keys.d || keys.arrowright) dx += 1;
+
+                this.angle = Math.atan2((mouse.y + camera.y) - this.y, (mouse.x + camera.x) - this.x);
+
+                if (mouse.down) {
+                    this.launchWater();
+                }
+
+                for (let i = toyBoxes.length - 1; i >= 0; i--) {
+                    let box = toyBoxes[i];
+                    if (Math.hypot(this.x - box.x, this.y - box.y) < this.radius + box.radius) {
+                        this.weapon = box.toyName;
+                        toyBoxes.splice(i, 1);
+                        createSplash(this.x, this.y, '#f1c40f', 15);
+                        showFeedMessage("¡Encontraste un " + this.weapon + "! 🎉");
+                        break;
+                    }
+                }
+
+            } else {
+                this.botLogic();
+                if (this.state === 'pasear' || this.state === 'perseguir') {
+                    let ang = Math.atan2(this.targetY - this.y, this.targetX - this.x);
+                    dx = Math.cos(ang);
+                    dy = Math.sin(ang);
+                    if (Math.hypot(this.targetX - this.x, this.targetY - this.y) < 15) {
+                        dx = 0; dy = 0;
+                    }
+                }
+            }
+
+            if (dx !== 0 && dy !== 0) {
+                let len = Math.hypot(dx, dy);
+                dx /= len; dy /= len;
+            }
+
+            let nextX = this.x + dx * this.speed;
+            let nextY = this.y + dy * this.speed;
+
+            nextX = Math.max(this.radius + 15, Math.min(WORLD_SIZE - this.radius - 15, nextX));
+            nextY = Math.max(this.radius + 15, Math.min(WORLD_SIZE - this.radius - 15, nextY));
+
+            let hitTree = false;
+            for (let tree of trees) {
+                let dist = Math.hypot(nextX - tree.x, nextY - tree.y);
+                if (dist < this.radius + tree.trunkRadius) {
+                    hitTree = true;
+                    break;
+                }
+            }
+
+            if (!hitTree) {
+                this.x = nextX;
+                this.y = nextY;
+            }
+
+            this.checkAutoFlowerWall();
+        }
+
+        botLogic() {
+            this.timer--;
+
+            let nearFriend = null;
+            let minDist = Infinity;
+
+            for (let p of players) {
+                if (p.id !== this.id && p.hp > 0) {
+                    let dist = Math.hypot(p.x - this.x, p.y - this.y);
+                    if (dist < 400 && dist < minDist) {
+                        minDist = dist;
+                        nearFriend = p;
+                    }
+                }
+            }
+
+            if (nearFriend) {
+                this.state = minDist < 200 ? 'jugar' : 'perseguir';
+                this.angle = Math.atan2(nearFriend.y - this.y, nearFriend.x - this.x);
+                
+                if (this.state === 'perseguir') {
+                    this.targetX = nearFriend.x;
+                    this.targetY = nearFriend.y;
+                } else {
+                    this.targetX = this.x;
+                    this.targetY = this.y;
+                    this.launchWater();
+                }
+            } else {
+                this.state = 'pasear';
+                if (this.timer <= 0) {
+                    this.targetX = this.x + (Math.random() - 0.5) * 400;
+                    this.targetY = this.y + (Math.random() - 0.5) * 400;
+                    this.targetX = Math.max(100, Math.min(WORLD_SIZE - 100, this.targetX));
+                    this.targetY = Math.max(100, Math.min(WORLD_SIZE - 100, this.targetY));
+                    this.timer = 80 + Math.random() * 100;
+                }
+                this.angle = Math.atan2(this.targetY - this.y, this.targetX - this.x);
+            }
+        }
+
+        launchWater() {
+            let now = Date.now();
+            let config = TOYS[this.weapon];
+            if (now - this.lastShot >= config.cooldown) {
+                let bx = this.x + Math.cos(this.angle) * config.size;
+                let by = this.y + Math.sin(this.angle) * config.size;
+
+                for (let i = 0; i < config.count; i++) {
+                    splatters.push(new Splatter(bx, by, this.angle, config, this.id));
+                }
+                this.lastShot = now;
+            }
+        }
+
+        checkAutoFlowerWall() {
+            if (this.shieldCooldown > 0) return;
+
+            if (this.isBot && Math.random() < 0.4) {
+                return; 
+            }
+
+            for (let s of splatters) {
+                if (s.ownerId !== this.id && s.active) {
+                    let d = Math.hypot(s.x - this.x, s.y - this.y);
+                    if (d < 140) {
+                        let angleToMe = Math.atan2(this.y - s.y, this.x - s.x);
+                        let waterHeading = Math.atan2(s.vy, s.vx);
+                        
+                        let diff = Math.abs(waterHeading - angleToMe);
+                        if (diff > Math.PI) diff = 2 * Math.PI - diff;
+
+                        if (diff < 0.6) {
+                            this.deployFlowerWall(Math.atan2(s.y - this.y, s.x - this.x));
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        deployFlowerWall(angle) {
+            let offset = 45;
+            let fx = this.x + Math.cos(angle) * offset;
+            let fy = this.y + Math.sin(angle) * offset;
+
+            flowerWalls.push(new FlowerWall(fx, fy, angle));
+            this.shieldCooldown = this.maxShieldCooldown;
+
+            createSplash(fx, fy, '#2ecc71', 12);
+        }
+
+        draw(ctx) {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.angle);
+
+            let config = TOYS[this.weapon];
+            ctx.fillStyle = config.color;
+            ctx.fillRect(12, -4, config.size, 8);
+            ctx.fillStyle = '#f1c40f';
+            ctx.fillRect(15, -6, 5, 12);
+
+            ctx.beginPath();
+            ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+            ctx.fillStyle = this.isBot ? '#e67e22' : '#3498db';
+            ctx.fill();
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#fff';
+            ctx.stroke();
+
+            ctx.fillStyle = this.isBot ? '#d35400' : '#2980b9';
+            ctx.beginPath();
+            ctx.arc(-5, 0, this.radius * 0.7, Math.PI * 0.5, Math.PI * 1.5);
+            ctx.fill();
+            ctx.fillRect(0, -6, 12, 12);
+
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(8, -6, 3, 0, Math.PI*2);
+            ctx.arc(8, 6, 3, 0, Math.PI*2);
+            ctx.fill();
+
+            ctx.restore();
+
+            let hpRatio = this.hp / this.maxHp;
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            ctx.fillRect(this.x - 20, this.y - 32, 40, 6);
+            ctx.fillStyle = '#3498db';
+            ctx.fillRect(this.x - 20, this.y - 32, 40 * hpRatio, 6);
+
+            ctx.fillStyle = '#2c3e50';
+            ctx.font = 'bold 12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(this.isBot ? 'Amigo' : 'Tú 🌟', this.x, this.y - 40);
+        }
+    }
+
+    function createSplash(x, y, color, count) {
+        for (let i = 0; i < count; i++) {
+            particles.push(new Particle(x, y, color));
+        }
+    }
+
+    function showFeedMessage(text) {
+        const feed = document.getElementById('kill-feed');
+        const div = document.createElement('div');
+        div.className = 'feed-msg';
+        div.innerText = text;
+        feed.appendChild(div);
+        setTimeout(() => {
+            if(div.parentNode) div.parentNode.removeChild(div);
+        }, 3500);
+    }
+
+    function spawnParkItems() {
+        const list = Object.keys(TOYS);
+        for(let i=0; i<25; i++) {
+            let toy = list[Math.floor(Math.random() * (list.length - 1)) + 1];
+            toyBoxes.push(new ToyBox(Math.random() * (WORLD_SIZE - 200) + 100, Math.random() * (WORLD_SIZE - 200) + 100, toy));
+        }
+
+        for(let i=0; i<35; i++) {
+            let x = Math.random() * (WORLD_SIZE - 300) + 150;
+            let y = Math.random() * (WORLD_SIZE - 300) + 150;
+            if (Math.hypot(x - WORLD_SIZE/2, y - WORLD_SIZE/2) > 200) {
+                trees.push(new Tree(x, y));
+            }
+        }
+    }
+
+    function initGame() {
+        players = [];
+        splatters = [];
+        flowerWalls = [];
+        toyBoxes = [];
+        particles = [];
+        trees = [];
+        friendsRefreshed = 0;
+        isGameOver = false;
+        document.getElementById('game-over').style.display = 'none';
+
+        spawnParkItems();
+
+        myPlayer = new Character(WORLD_SIZE/2, WORLD_SIZE/2, false);
+        players.push(myPlayer);
+
+        for(let i=0; i<14; i++) {
+            let rx = Math.random() * (WORLD_SIZE - 300) + 150;
+            let ry = Math.random() * (WORLD_SIZE - 300) + 150;
+            players.push(new Character(rx, ry, true));
+        }
+    }
+
+    function checkWallImpact(splat) {
+        for (let wall of flowerWalls) {
+            if (wall.energy <= 0) continue;
+            
+            let dist = Math.hypot(splat.x - wall.x, splat.y - wall.y);
+            
+            if (Math.abs(dist - wall.radius) < splat.radius + 12) {
+                let splatAngle = Math.atan2(splat.y - wall.y, splat.x - wall.x);
+                let diff = Math.abs(splatAngle - wall.angle);
+                if (diff > Math.PI) diff = 2 * Math.PI - diff;
+                
+                if (diff < Math.PI/2) {
+                    wall.energy -= splat.damage;
+                    createSplash(splat.x, splat.y, '#3498db', 4);
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    function update() {
+        if (isGameOver) return;
+
+        for (let i = players.length - 1; i >= 0; i--) {
+            let p = players[i];
+            p.update();
+
+            if (p.hp <= 0) {
+                if (p === myPlayer) {
+                    endGame("¡Quedaste súper empapado!");
+                } else {
+                    createSplash(p.x, p.y, '#3498db', 25);
+                    toyBoxes.push(new ToyBox(p.x, p.y, p.weapon));
+                    players.splice(i, 1);
+                }
+            }
+        }
+
+        if (players.length === 1 && players[0] === myPlayer) {
+            endGame("¡BOOYAH! ¡Eres el rey de la diversión!");
+        }
+
+        for (let i = flowerWalls.length - 1; i >= 0; i--) {
+            flowerWalls[i].update();
+            if (flowerWalls[i].energy <= 0) {
+                createSplash(flowerWalls[i].x, flowerWalls[i].y, '#2ecc71', 10);
+                flowerWalls.splice(i, 1);
+            }
+        }
+
+        toyBoxes.forEach(box => box.update());
+
+        for (let i = splatters.length - 1; i >= 0; i--) {
+            let s = splatters[i];
+            s.update();
+
+            if (!s.active) {
+                splatters.splice(i, 1);
+                continue;
+            }
+
+            if (checkWallImpact(s)) {
+                splatters.splice(i, 1);
+                continue;
+            }
+
+            let hitTree = false;
+            for (let tree of trees) {
+                if (Math.hypot(s.x - tree.x, s.y - tree.y) < tree.foliageRadius - 5) {
+                    createSplash(s.x, s.y, '#27ae60', 3);
+                    splatters.splice(i, 1);
+                    hitTree = true;
+                    break;
+                }
+            }
+            if (hitTree) continue;
+
+            for (let p of players) {
+                if (s.ownerId !== p.id && p.hp > 0) {
+                    if (Math.hypot(s.x - p.x, s.y - p.y) < p.radius + s.radius) {
+                        
+                        let damageMultiplier = (s.ownerId === myPlayer.id) ? 1.0 : 0.4;
+                        p.hp -= s.damage * damageMultiplier;
+                        
+                        createSplash(s.x, s.y, s.color, 8);
+
+                        if (p.hp <= 0) {
+                            if (s.ownerId === myPlayer.id) {
+                                friendsRefreshed++;
+                                showFeedMessage("¡Refrescaste a un amigo! 💧🌸");
+                            } else if (p === myPlayer) {
+                                showFeedMessage("¡Te han empapado de agua fresca!");
+                            }
+                        }
+                        splatters.splice(i, 1);
+                        break;
+                    }
+                }
+            }
+        }
+
+        for (let i = particles.length - 1; i >= 0; i--) {
+            particles[i].update();
+            if (particles[i].life <= 0) {
+                particles.splice(i, 1);
+            }
+        }
+
+        if (myPlayer.hp > 0) {
+            camera.x += (myPlayer.x - width/2 - camera.x) * 0.1;
+            camera.y += (myPlayer.y - height/2 - camera.y) * 0.1;
+            
+            camera.x = Math.max(0, Math.min(WORLD_SIZE - width, camera.x));
+            camera.y = Math.max(0, Math.min(WORLD_SIZE - height, camera.y));
+
+            updateUI();
+        }
+    }
+
+    function updateUI() {
+        let hpInt = Math.ceil(Math.max(0, myPlayer.hp));
+        document.getElementById('energy-text').innerText = hpInt;
+        document.getElementById('energy-bar').style.width = hpInt + '%';
+
+        document.getElementById('weapon-name').innerText = myPlayer.weapon;
+        document.getElementById('weapon-name').style.color = TOYS[myPlayer.weapon].color;
+        
+        let shStatus = document.getElementById('shield-status');
+        if (myPlayer.shieldCooldown <= 0) {
+            shStatus.innerText = "Pared de Flores: ¡LISTA! (Auto) 🌸";
+            shStatus.style.color = "#2ecc71";
+        } else {
+            shStatus.innerText = `Pared de Flores en: ${(myPlayer.shieldCooldown/1000).toFixed(1)}s`;
+            shStatus.style.color = "#95a5a6";
+        }
+
+        document.getElementById('kills-text').innerText = friendsRefreshed;
+        document.getElementById('alive-text').innerText = players.length;
+    }
+
+    function drawGrass(ctx) {
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+        ctx.lineWidth = 1.5;
+        let startX = Math.floor(camera.x / TILE_SIZE) * TILE_SIZE;
+        let startY = Math.floor(camera.y / TILE_SIZE) * TILE_SIZE;
+
+        ctx.beginPath();
+        for (let x = startX; x < camera.x + width; x += TILE_SIZE) {
+            ctx.moveTo(x, camera.y);
+            ctx.lineTo(x, camera.y + height);
+        }
+        for (let y = startY; y < camera.y + height; y += TILE_SIZE) {
+            ctx.moveTo(camera.x, y);
+            ctx.lineTo(camera.x + width, y);
+        }
+        ctx.stroke();
+
+        ctx.strokeStyle = '#e74c3c';
+        ctx.lineWidth = 14;
+        ctx.strokeRect(10, 10, WORLD_SIZE - 20, WORLD_SIZE - 20);
+    }
+
+    function endGame(title) {
+        isGameOver = true;
+        document.getElementById('game-over').style.display = 'block';
+        document.getElementById('go-title').innerText = title;
+        document.getElementById('go-stats').innerText = `Lograste refrescar a ${friendsRefreshed} amigos. ¡Gran juego!`;
+    }
+
+    function draw() {
+        ctx.fillStyle = '#2ecc71';
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.save();
+        ctx.translate(-camera.x, -camera.y);
+
+        drawGrass(ctx);
+
+        toyBoxes.forEach(box => box.draw(ctx));
+        splatters.forEach(s => s.draw(ctx));
+        flowerWalls.forEach(fw => fw.draw(ctx));
+        players.forEach(p => p.draw(ctx));
+        trees.forEach(t => t.draw(ctx));
+        particles.forEach(p => p.draw(ctx));
+
+        ctx.restore();
+    }
+
+    function loop() {
+        update();
+        draw();
+        requestAnimationFrame(loop);
+    }
+
+    initGame();
+    loop();
+
+</script>
+</body>
+</html>
